@@ -1,0 +1,133 @@
+name: struktr Android preview screenshots
+description: >
+  Run the app on a headless Android emulator, execute a Maestro flow, capture
+  screenshots at defined steps, and publish them as a gallery (PR comment when
+  run in a pull request, job summary otherwise). Bring your own checkout.
+author: magucc
+
+inputs:
+  apk-path:
+    description: Path to the debug APK to install (after build-command runs)
+    required: true
+  flows:
+    description: Maestro flow file or directory to execute
+    required: false
+    default: .maestro/preview
+  build-command:
+    description: Command that produces the APK. Set to "skip" if the APK is prebuilt (e.g. downloaded artifact).
+    required: false
+    default: gradle assembleDebug
+  api-level:
+    description: Android emulator API level
+    required: false
+    default: "34"
+  java-version:
+    description: JDK version for the build
+    required: false
+    default: "17"
+  gradle-version:
+    description: Gradle version provisioned for build-command
+    required: false
+    default: "8.9"
+  archive-branch:
+    description: Branch (in the calling repo) where screenshot PNGs are stored
+    required: false
+    default: screenshot-archive
+  comment:
+    description: Post/update a gallery comment when running in a PR context
+    required: false
+    default: "true"
+  github-token:
+    description: Token used to push the archive branch and comment on the PR
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Enable KVM
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+
+    - uses: gradle/actions/setup-gradle@v4
+      if: inputs.build-command != 'skip'
+      with:
+        gradle-version: ${{ inputs.gradle-version }}
+
+    - name: Build APK
+      if: inputs.build-command != 'skip'
+      shell: bash
+      run: ${{ inputs.build-command }}
+
+    - name: Install Maestro
+      shell: bash
+      run: |
+        curl -fsSL https://get.maestro.mobile.dev | bash
+        echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+    - name: AVD cache
+      id: avd-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: struktr-avd-api${{ inputs.api-level }}-x86_64-v1
+
+    - name: Create AVD snapshot for caching
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ inputs.api-level }}
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Generated AVD snapshot for caching."
+
+    - name: Run preview flow
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ inputs.api-level }}
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: |
+          adb shell settings put global sysui_demo_allowed 1
+          adb shell am broadcast -a com.android.systemui.demo -e command enter
+          adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1000
+          adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
+          adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide
+          adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
+          adb install "${{ inputs.apk-path }}"
+          maestro test "${{ inputs.flows }}"
+          mkdir -p screenshots
+          find "$HOME/.maestro" -name '*.png' -exec cp -v {} screenshots/ \; 2>/dev/null || true
+          ls -la screenshots/
+
+    - name: Upload screenshots artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-screenshots
+        path: screenshots/
+        if-no-files-found: warn
+
+    - name: Publish gallery
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        ARCHIVE_BRANCH: ${{ inputs.archive-branch }}
+        COMMENT_ENABLED: ${{ inputs.comment }}
+      run: bash "${{ github.action_path }}/scripts/publish-gallery.sh"

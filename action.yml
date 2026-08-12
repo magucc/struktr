@@ -109,7 +109,7 @@ runs:
           adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide
           adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
           adb install "${{ inputs.apk-path }}"
-          maestro test "${{ inputs.flows }}"
+          "$HOME/.maestro/bin/maestro" test "${{ inputs.flows }}"
           mkdir -p screenshots
           find "$HOME/.maestro" -name '*.png' -exec cp -v {} screenshots/ \; 2>/dev/null || true
           ls -la screenshots/

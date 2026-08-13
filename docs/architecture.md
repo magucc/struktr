@@ -35,7 +35,7 @@ Two products in one repo: **static screenshot galleries** (shipped, CI-only) and
 | `preview-service/docker` | Compose: orchestrator + github-app + Caddy | Needs VM |
 | `preview-service/deploy/provision-vm.sh` | Interactive wizard: VM, KVM, emulator image, DNS, secrets, scheduler | Human-run |
 | `github-app` | Webhook server (octokit): label pickup, `.struktr.yml`, artifact resolution, PR comments | Unit-tested; needs App registration (`github-app/SETUP.md` / `setup-wizard.sh`) |
-| `agent-capture` | Claude generates the capture flow from PR title/body/diff via structured outputs; strict step whitelist; falls back to committed flows | Unit-tested; live behind `agent-flows: true` + API key |
+| `agent-capture` | Claude agentic loop (Messages API + custom tools): reads changed files for screen context, test-runs candidate flows on the live emulator, self-heals from failures, submits under a strict command whitelist; single-call mode as no-emulator fallback; committed flows as the hard fallback | Unit-tested; live behind `agent-flows: true` + API key |
 
 ## Key design decisions
 

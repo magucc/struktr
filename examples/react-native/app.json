@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "struktr RN example",
+    "slug": "struktr-example",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "app.struktr.example"
+    }
+  }
+}

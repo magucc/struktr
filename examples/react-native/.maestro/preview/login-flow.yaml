@@ -1,0 +1,12 @@
+appId: app.struktr.example
+name: RN example — login → home preview
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Sign in"
+- takeScreenshot: screenshots/01-login
+- tapOn: "Sign in"
+- assertVisible: "Welcome"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: screenshots/02-home

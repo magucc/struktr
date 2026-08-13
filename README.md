@@ -76,6 +76,11 @@ gh workflow run previews.yml --repo you/your-app --ref your-branch
 | `comment` | `true` | Upsert the PR gallery comment |
 | `github-token` | `github.token` | Needs `contents: write` + `pull-requests: write` |
 
+## Examples & self-test
+
+- **React Native (Expo)**: [`examples/react-native`](examples/react-native) — native project generated in CI via `expo prebuild`, release APK (bundled JS, no Metro), same flow shape as the native POC. The [`self-test`](.github/workflows/self-test.yml) workflow runs the action from the local checkout against this example on every PR and push to main — the repo dogfoods itself.
+- **Native Android (Kotlin)**: [struktr-poc](https://github.com/magucc/struktr-poc) — the original reference integration with the `MOCK_AUTH` build flavor.
+
 ## Notes
 
 - Runs entirely in *your* repo's Actions — free on public repos, ~$0.03/run private.

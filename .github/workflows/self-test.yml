@@ -1,0 +1,38 @@
+name: self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch: {}
+
+concurrency:
+  group: self-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  react-native-example:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run struktr against the RN example (local action)
+        uses: ./
+        with:
+          build-command: >-
+            cd examples/react-native &&
+            npm install &&
+            npx expo prebuild --platform android --no-install &&
+            cd android && ./gradlew assembleRelease
+          apk-path: examples/react-native/android/app/build/outputs/apk/release/app-release.apk
+          flows: examples/react-native/.maestro/preview

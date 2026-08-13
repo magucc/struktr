@@ -129,6 +129,11 @@ runs:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         STRUKTR_AGENT_PROVIDER: ${{ inputs.agent-provider }}
         STRUKTR_AGENT_MODEL: ${{ inputs.agent-model }}
+        STRUKTR_AGENT_FLOWS: ${{ inputs.agent-flows }}
+        STRUKTR_APP_ID: ${{ inputs.app-id }}
+        STRUKTR_APK_PATH: ${{ inputs.apk-path }}
+        STRUKTR_FLOWS: ${{ inputs.flows }}
+        STRUKTR_ACTION_PATH: ${{ github.action_path }}
         MAESTRO_BIN: /home/runner/.maestro/bin/maestro
       with:
         api-level: ${{ inputs.api-level }}
@@ -136,30 +141,7 @@ runs:
         force-avd-creation: false
         emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
-        script: |
-          adb shell settings put global sysui_demo_allowed 1
-          adb shell am broadcast -a com.android.systemui.demo -e command enter
-          adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1000
-          adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
-          adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide
-          adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-          adb install "${{ inputs.apk-path }}"
-          FLOWS="${{ inputs.flows }}"
-          if [ "${{ inputs.agent-flows }}" = "true" ]; then
-            if node "${{ github.action_path }}/agent-capture/src/cli.js" --agentic \
-                --app-id "${{ inputs.app-id }}" \
-                --context /tmp/struktr-ctx.json \
-                --out .maestro/generated/agent-flow.yaml \
-                --workspace "$GITHUB_WORKSPACE"; then
-              FLOWS=".maestro/generated/agent-flow.yaml"
-            else
-              echo "::warning::agent-capture failed; using committed flows"
-            fi
-          fi
-          "$HOME/.maestro/bin/maestro" test "$FLOWS"
-          mkdir -p screenshots
-          find "$HOME/.maestro" -name '*.png' -exec cp -v {} screenshots/ \; 2>/dev/null || true
-          ls -la screenshots/
+        script: bash "$STRUKTR_ACTION_PATH/scripts/run-preview-flow.sh"
 
     - name: Upload screenshots artifact
       if: always()

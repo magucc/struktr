@@ -1,0 +1,46 @@
+## struktr preview-service control plane.
+## Emulator session containers are NOT defined here — the orchestrator launches
+## them dynamically via the Docker socket, one per session, from the image
+## built by deploy/provision-vm.sh (default tag: struktr-emulator:latest).
+services:
+  orchestrator:
+    build: ../orchestrator
+    restart: unless-stopped
+    env_file: ../../.env
+    environment:
+      - DOCKER_SOCKET=/var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - apk-cache:/var/cache/struktr-apks
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [struktr]
+
+  github-app:
+    build: ../../github-app
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [struktr]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - PREVIEW_DOMAIN=${PREVIEW_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [struktr]
+
+volumes:
+  apk-cache:
+  caddy-data:
+
+networks:
+  struktr:
+    name: struktr

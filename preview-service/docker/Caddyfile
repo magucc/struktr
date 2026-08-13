@@ -1,0 +1,12 @@
+{$PREVIEW_DOMAIN} {
+	# GitHub webhooks → app server
+	handle /api/github/* {
+		reverse_proxy github-app:3000
+	}
+
+	# Everything else (player pages, orchestrator API, and proxied emulator
+	# UI/WebSocket signaling under /s/*) → orchestrator.
+	handle {
+		reverse_proxy orchestrator:8080
+	}
+}

@@ -81,6 +81,14 @@ gh workflow run previews.yml --repo you/your-app --ref your-branch
 - **React Native (Expo)**: [`examples/react-native`](examples/react-native) — native project generated in CI via `expo prebuild`, release APK (bundled JS, no Metro), same flow shape as the native POC. The [`self-test`](.github/workflows/self-test.yml) workflow runs the action from the local checkout against this example on every PR and push to main — the repo dogfoods itself.
 - **Native Android (Kotlin)**: [struktr-poc](https://github.com/magucc/struktr-poc) — the original reference integration with the `MOCK_AUTH` build flavor.
 
+## Beyond static galleries
+
+The repo also contains the full interactive-preview platform (Appetize-style emulator-in-browser wired to per-PR backends) — see [`docs/architecture.md`](docs/architecture.md):
+
+- **`preview-service/`** — session orchestrator + WebRTC emulator containers + player at `app-preview.<domain>/pr/{hash}/{device}`; business-hours pool; provision with `preview-service/deploy/provision-vm.sh`.
+- **`github-app/`** — full abstraction: install the App, add `.struktr.yml`, label a PR — no workflow YAML needed. Admin setup: [`github-app/SETUP.md`](github-app/SETUP.md) or `github-app/setup-wizard.sh`.
+- **`agent-capture/`** — pass `agent-flows: true` + `anthropic-api-key` to the action and a Claude agent derives the capture flow from the PR context (validated, whitelisted, falls back to committed flows).
+
 ## Notes
 
 - Runs entirely in *your* repo's Actions — free on public repos, ~$0.03/run private.

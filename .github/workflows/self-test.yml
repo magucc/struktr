@@ -16,6 +16,25 @@ permissions:
   pull-requests: write
 
 jobs:
+  services:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [preview-service/orchestrator, github-app, agent-capture]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install, build, test
+        working-directory: ${{ matrix.dir }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build --if-present
+          npm test
+
   react-native-example:
     runs-on: ubuntu-latest
     timeout-minutes: 35

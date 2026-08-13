@@ -4,9 +4,14 @@
     "slug": "struktr-example",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "android": {
-      "package": "app.struktr.example"
+      "package": "app.struktr.example",
+      "adaptiveIcon": {
+        "backgroundColor": "#EFEDFD",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
     }
   }
 }

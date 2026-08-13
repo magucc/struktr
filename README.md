@@ -87,7 +87,7 @@ The repo also contains the full interactive-preview platform (Appetize-style emu
 
 - **`preview-service/`** — session orchestrator + WebRTC emulator containers + player at `app-preview.<domain>/pr/{hash}/{device}`; business-hours pool; provision with `preview-service/deploy/provision-vm.sh`.
 - **`github-app/`** — full abstraction: install the App, add `.struktr.yml`, label a PR — no workflow YAML needed. Admin setup: [`github-app/SETUP.md`](github-app/SETUP.md) or `github-app/setup-wizard.sh`.
-- **`agent-capture/`** — pass `agent-flows: true` + `anthropic-api-key` to the action and a Claude agent derives the capture flow from the PR context (validated, whitelisted, falls back to committed flows).
+- **`agent-capture/`** — pass `agent-flows: true` + `anthropic-api-key` to the action and a Claude agent (claude-opus-5, Messages API agentic loop) derives the capture flow: it reads the changed files for screen names, test-runs candidates on the live emulator, self-heals from Maestro failures, then submits. Tool surface is whitelist-only (no bash/writes, path-confined reads); any failure falls back to committed flows.
 
 ## Notes
 

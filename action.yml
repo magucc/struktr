@@ -85,27 +85,15 @@ runs:
         curl -fsSL https://get.maestro.mobile.dev | bash
         echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
-    - name: Agent-generated flow
-      id: agent-flow
+    - name: Agent flow prep
       if: inputs.agent-flows == 'true' && inputs.anthropic-api-key != ''
       shell: bash
-      env:
-        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
       run: |
-        set +e
         npm install --omit=dev --no-audit --no-fund --prefix "${{ github.action_path }}/agent-capture" > /dev/null 2>&1
-        jq '{title: (.pull_request.title // ""), body: (.pull_request.body // "")}' "$GITHUB_EVENT_PATH" > /tmp/struktr-ctx.json
+        jq '{title: (.pull_request.title // ""), body: (.pull_request.body // "")}' "$GITHUB_EVENT_PATH" > /tmp/struktr-ctx.json || echo '{}' > /tmp/struktr-ctx.json
         CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD 2>/dev/null | head -50 | jq -R -s -c 'split("\n") | map(select(. != ""))')
         [ -n "$CHANGED" ] && jq --argjson files "$CHANGED" '. + {changedFiles: $files}' /tmp/struktr-ctx.json > /tmp/struktr-ctx2.json && mv /tmp/struktr-ctx2.json /tmp/struktr-ctx.json
-        node "${{ github.action_path }}/agent-capture/src/cli.js" \
-          --app-id "${{ inputs.app-id }}" \
-          --context /tmp/struktr-ctx.json \
-          --out .maestro/generated/agent-flow.yaml
-        if [ $? -eq 0 ]; then
-          echo "flows=.maestro/generated/agent-flow.yaml" >> "$GITHUB_OUTPUT"
-        else
-          echo "flows=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
-        fi
+        echo "Agent context prepared."
 
     - name: AVD cache
       id: avd-cache
@@ -129,6 +117,9 @@ runs:
 
     - name: Run preview flow
       uses: reactivecircus/android-emulator-runner@v2
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        MAESTRO_BIN: /home/runner/.maestro/bin/maestro
       with:
         api-level: ${{ inputs.api-level }}
         arch: x86_64
@@ -143,7 +134,19 @@ runs:
           adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide
           adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
           adb install "${{ inputs.apk-path }}"
-          "$HOME/.maestro/bin/maestro" test "${{ steps.agent-flow.outputs.flows || inputs.flows }}"
+          FLOWS="${{ inputs.flows }}"
+          if [ "${{ inputs.agent-flows }}" = "true" ] && [ -n "$ANTHROPIC_API_KEY" ]; then
+            if node "${{ github.action_path }}/agent-capture/src/cli.js" --agentic \
+                --app-id "${{ inputs.app-id }}" \
+                --context /tmp/struktr-ctx.json \
+                --out .maestro/generated/agent-flow.yaml \
+                --workspace "$GITHUB_WORKSPACE"; then
+              FLOWS=".maestro/generated/agent-flow.yaml"
+            else
+              echo "::warning::agent-capture failed; using committed flows"
+            fi
+          fi
+          "$HOME/.maestro/bin/maestro" test "$FLOWS"
           mkdir -p screenshots
           find "$HOME/.maestro" -name '*.png' -exec cp -v {} screenshots/ \; 2>/dev/null || true
           ls -la screenshots/

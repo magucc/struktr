@@ -48,8 +48,7 @@ export default function App() {
       <Text style={styles.subtitle}>demo@struktr.app · mock session</Text>
       <View style={styles.card}>
         <Text style={styles.cardText}>
-          ⚛️ This screen is React Native, captured by the same struktr action
-          as the native example
+          🎨 Teal rebrand! This PR's gallery shows the new colors on every screen
         </Text>
       </View>
       <View style={styles.card}>
@@ -71,7 +70,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: '#5B4CF5',
+    color: '#0D9488',
     textAlign: 'center',
   },
   tagline: {
@@ -90,7 +89,7 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
   },
   button: {
-    backgroundColor: '#5B4CF5',
+    backgroundColor: '#0D9488',
     borderRadius: 24,
     paddingVertical: 14,
     marginTop: 24,
@@ -113,7 +112,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   card: {
-    backgroundColor: '#EFEDFD',
+    backgroundColor: '#CCFBF1',
     padding: 20,
     marginBottom: 12,
   },

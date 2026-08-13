@@ -1,10 +1,47 @@
 # struktr GitHub App — admin setup
 
 One-time admin task: register the GitHub App, generate its credentials, deploy the
-server, and install the App on the repos that should get previews. ~10 minutes.
+server, and install the App on the repos that should get previews.
 
-> Prefer the guided version: `bash github-app/setup-wizard.sh` walks you through
-> these exact steps and writes the captured values to `.env` for you.
+> **Preferred: the manifest flow (~2 minutes, one browser click).** GitHub has no
+> API to create an App outright, but `create-app.mjs` automates everything except
+> the single confirmation click:
+>
+> ```bash
+> node github-app/create-app.mjs \
+>   --webhook-url https://app-preview.kju.ai/api/github/webhooks \
+>   --org kju-ai \
+>   --host <this-machine's-tailscale-name>   # so your browser can reach the callback
+> ```
+>
+> Open the printed URL in a logged-in browser, click **Create App on GitHub**,
+> and the script captures the App ID, private key, and webhook secret into `.env`
+> automatically, then prints the install link. No webhook endpoint needs to exist
+> yet — point it at a [smee.io](https://smee.io) channel and change it later in
+> App settings. Skip to §4 (install) and §5 (wire up a repo) below.
+>
+> The manual form walk-through below (§1–§2) and `setup-wizard.sh` remain as the
+> fallback path.
+
+## Install on more repos (no browser needed)
+
+The *first* install of the App on an account needs one browser approval. After
+that, adding repos to the existing installation is pure `gh`:
+
+```bash
+# Find the installation id for your account/org
+gh api /user/installations --jq '.installations[] | "\(.id) \(.app_slug) \(.account.login)"'
+
+# Add a repo to it
+REPO_ID=$(gh api repos/kju-ai/some-app --jq .id)
+gh api -X PUT /user/installations/<INSTALLATION_ID>/repositories/$REPO_ID
+
+# Remove one
+gh api -X DELETE /user/installations/<INSTALLATION_ID>/repositories/$REPO_ID
+```
+
+Then drop a `.struktr.yml` in the repo (§5) and label a PR — that's the whole
+onboarding for each additional repo.
 
 ## 1. Register the App
 

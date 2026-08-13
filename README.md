@@ -75,6 +75,10 @@ gh workflow run previews.yml --repo you/your-app --ref your-branch
 | `archive-branch` | `screenshot-archive` | Branch in your repo where PNGs are pushed |
 | `comment` | `true` | Upsert the PR gallery comment |
 | `github-token` | `github.token` | Needs `contents: write` + `pull-requests: write` |
+| `agent-flows` | `false` | Claude agent derives the capture flow from the PR (see below) |
+| `agent-provider` | `anthropic` | `anthropic` \| `foundry` (Microsoft Foundry) \| `bedrock` (Amazon Bedrock — bills as AWS spend, credits apply) |
+| `agent-model` | `claude-sonnet-5` | Model for agent-flows; Bedrock ids auto-prefixed |
+| `anthropic-api-key` | — | For `agent-provider: anthropic`; Foundry/Bedrock read their creds from the workflow env |
 
 ## Examples & self-test
 

@@ -6,7 +6,7 @@
  * unattended in CI on PR-derived context, so no bash, no writes, and file
  * reads never escape the workspace.
  */
-import Anthropic from "@anthropic-ai/sdk";
+import { createMessage, makeClient, resolveModel, resolveProvider } from "./provider.js";
 import { execFile } from "node:child_process";
 import { mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -151,8 +151,10 @@ function buildPrompt(context) {
 
 /** Run the agentic loop. Returns {yaml, reasoning, verified}. Throws when the
  * agent fails to produce a valid flow — callers fall back to committed flows. */
-export async function runAgent(context, { client, appId, handlers, model } = {}) {
-  const anthropic = client ?? new Anthropic();
+export async function runAgent(context, { client, appId, handlers, model, provider } = {}) {
+  const prov = provider ?? resolveProvider();
+  const resolvedModel = model ?? resolveModel(prov);
+  const anthropic = client ?? (await makeClient(prov));
   const submitted = { steps: null, reasoning: null, verified: false };
 
   const toolHandlers = {
@@ -168,11 +170,8 @@ export async function runAgent(context, { client, appId, handlers, model } = {})
   const messages = [{ role: "user", content: buildPrompt(context) }];
 
   for (let turn = 0; turn < MAX_TURNS && !submitted.steps; turn++) {
-    const response = await anthropic.beta.messages.create({
-      model: model ?? process.env.STRUKTR_AGENT_MODEL ?? "claude-opus-5",
+    const response = await createMessage(anthropic, prov, resolvedModel, {
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       tools: TOOLS,
       messages,
     });

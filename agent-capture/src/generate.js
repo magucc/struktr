@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { createMessage, makeClient, resolveModel, resolveProvider } from "./provider.js";
 import { serializeFlow, validateSteps } from "./serialize.js";
 
 const STEP_SCHEMA = {
@@ -54,13 +54,12 @@ function buildPrompt(context) {
 
 /** Generate a Maestro flow YAML from PR context. Throws on refusal or invalid
  * output — callers treat any throw as "fall back to committed flows". */
-export async function generateFlow(context, { client, model, appId } = {}) {
-  const anthropic = client ?? new Anthropic();
-  const response = await anthropic.beta.messages.create({
-    model: model ?? process.env.STRUKTR_AGENT_MODEL ?? "claude-opus-5",
+export async function generateFlow(context, { client, model, appId, provider } = {}) {
+  const prov = provider ?? resolveProvider();
+  const resolvedModel = model ?? resolveModel(prov);
+  const anthropic = client ?? (await makeClient(prov));
+  const response = await createMessage(anthropic, prov, resolvedModel, {
     max_tokens: 16000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     output_config: { format: { type: "json_schema", schema: STEP_SCHEMA } },
     messages: [{ role: "user", content: buildPrompt(context) }],
   });

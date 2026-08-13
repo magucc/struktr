@@ -3,13 +3,11 @@ import { generateFlow } from "../src/generate.js";
 
 function mockClient(responseBody, stopReason = "end_turn") {
   return {
-    beta: {
-      messages: {
-        create: vi.fn(async () => ({
-          stop_reason: stopReason,
-          content: [{ type: "text", text: JSON.stringify(responseBody) }],
-        })),
-      },
+    messages: {
+      create: vi.fn(async () => ({
+        stop_reason: stopReason,
+        content: [{ type: "text", text: JSON.stringify(responseBody) }],
+      })),
     },
   };
 }
@@ -37,8 +35,9 @@ describe("generateFlow", () => {
     expect(yaml).toContain("screenshots/02-payment");
     expect(reasoning).toMatch(/checkout/);
 
-    const call = client.beta.messages.create.mock.calls[0][0];
-    expect(call.fallbacks).toBe("default");
+    const call = client.messages.create.mock.calls[0][0];
+    expect(call.model).toBe("claude-sonnet-5");
+    expect(call.fallbacks).toBeUndefined();
     expect(call.output_config.format.type).toBe("json_schema");
     expect(call.messages[0].content).toContain("Add checkout flow");
   });

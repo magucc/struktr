@@ -50,7 +50,15 @@ inputs:
     required: false
     default: "false"
   anthropic-api-key:
-    description: Anthropic API key for agent-flows
+    description: Anthropic API key for agent-flows (agent-provider anthropic)
+    required: false
+    default: ""
+  agent-provider:
+    description: "Where the agent's Claude calls go: anthropic | foundry | bedrock. Foundry reads ANTHROPIC_FOUNDRY_API_KEY + ANTHROPIC_FOUNDRY_RESOURCE (or _BASE_URL) from the workflow env; bedrock uses the runner's AWS credentials + AWS_REGION."
+    required: false
+    default: "anthropic"
+  agent-model:
+    description: Model override for agent-flows (default claude-sonnet-5; bedrock ids are auto-prefixed)
     required: false
     default: ""
 
@@ -86,7 +94,7 @@ runs:
         echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
     - name: Agent flow prep
-      if: inputs.agent-flows == 'true' && inputs.anthropic-api-key != ''
+      if: inputs.agent-flows == 'true'
       shell: bash
       run: |
         npm install --omit=dev --no-audit --no-fund --prefix "${{ github.action_path }}/agent-capture" > /dev/null 2>&1
@@ -119,6 +127,8 @@ runs:
       uses: reactivecircus/android-emulator-runner@v2
       env:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        STRUKTR_AGENT_PROVIDER: ${{ inputs.agent-provider }}
+        STRUKTR_AGENT_MODEL: ${{ inputs.agent-model }}
         MAESTRO_BIN: /home/runner/.maestro/bin/maestro
       with:
         api-level: ${{ inputs.api-level }}
@@ -135,7 +145,7 @@ runs:
           adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
           adb install "${{ inputs.apk-path }}"
           FLOWS="${{ inputs.flows }}"
-          if [ "${{ inputs.agent-flows }}" = "true" ] && [ -n "$ANTHROPIC_API_KEY" ]; then
+          if [ "${{ inputs.agent-flows }}" = "true" ]; then
             if node "${{ github.action_path }}/agent-capture/src/cli.js" --agentic \
                 --app-id "${{ inputs.app-id }}" \
                 --context /tmp/struktr-ctx.json \

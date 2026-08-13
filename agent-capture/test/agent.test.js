@@ -15,14 +15,12 @@ const GOOD_STEPS = [
 function scriptedClient(responses) {
   let i = 0;
   return {
-    beta: {
-      messages: {
-        create: vi.fn(async ({ messages }) => {
-          const r = responses[Math.min(i, responses.length - 1)];
-          i += 1;
-          return typeof r === "function" ? r(messages) : r;
-        }),
-      },
+    messages: {
+      create: vi.fn(async ({ messages }) => {
+        const r = responses[Math.min(i, responses.length - 1)];
+        i += 1;
+        return typeof r === "function" ? r(messages) : r;
+      }),
     },
   };
 }
@@ -51,7 +49,7 @@ describe("runAgent", () => {
     expect(handlers.read_file).toHaveBeenCalledOnce();
 
     // Tool results flow back as user messages
-    const lastCall = client.beta.messages.create.mock.calls.at(-1)[0];
+    const lastCall = client.messages.create.mock.calls.at(-1)[0];
     const toolResultMsgs = lastCall.messages.filter(
       (m) => m.role === "user" && Array.isArray(m.content) && m.content[0]?.type === "tool_result",
     );
